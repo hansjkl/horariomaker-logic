@@ -140,15 +140,7 @@ function RestrictionsPanel({ restrictions, onRestrictionsChange, onGenerateSched
             </div>
             <div className="schedule-body">
               {TIME_SLOTS.map((time, moduleIdx) => {
-                const isLunch = moduleIdx === 4; // After 12:20 (index 3) comes lunch
-
-                // If it's the lunch index, we render the lunch row FIRST, then the actual module row?
-                // No, the user said "include a line for lunch at 13:30".
-                // The times are: 8:20, 9:40, 11:00, 12:20. (Indices 0, 1, 2, 3)
-                // Then Lunch at 13:30.
-                // Then 14:50, 16:10, 17:30, 18:50, 20:10. (Indices 4, 5, 6, 7, 8)
-                // So we can iterate from 0 to 8. When we are at index 4, we insert the lunch row before it.
-
+                const isLunch = moduleIdx === 4;
                 const rows = [];
 
                 if (moduleIdx === 4) {

@@ -474,12 +474,12 @@ body {
 }
 
 .module-cell.blocked {
-  background: #ff4444;
-  border-color: #cc0000;
+  background: #9c9c9c;
+  border-color: #707070;
 }
 
 .module-cell.blocked:hover {
-  background: #ff6666;
+  background: #c6c6c6;
 }
 
 .campus-list,
