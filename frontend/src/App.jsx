@@ -9,7 +9,7 @@ const DEFAULT_RESTRICTIONS = {
   blocked_modules: Array(54).fill(0),
   allowed_campuses: ['San Joaquín'],
   spanish: true,
-  english: true,
+  english: false,
   allow_ayu_conflict: true,
   allow_lab_conflict: false
 };

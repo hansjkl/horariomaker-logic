@@ -39,6 +39,12 @@ function CourseSelector({ courses, onCoursesChange, classesData }) {
     }
   };
 
+  const removeCourse = (idx) => {
+    let new_courses = [...courses];
+    new_courses.splice(idx, 1);
+    onCoursesChange(new_courses);
+  }
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && inputValue.trim()) {
       handleAddCourse(inputValue.trim());
@@ -111,13 +117,18 @@ function CourseSelector({ courses, onCoursesChange, classesData }) {
       {courses.length > 0 && (
         <div className="selected-courses">
           {courses.map((course, idx) => (
-            <input
-              key={idx}
-              type="text"
-              value={ofg_categories.includes(course) ? `Formación General - ${course}` : course}
-              readOnly
-              className="selected-course-input"
-            />
+            <div className="selected-course-row">
+              <input
+                key={idx*2}
+                type="text"
+                value={ofg_categories.includes(course) ? `Formación General - ${course}` : course}
+                readOnly
+                className="selected-course-input"
+              />
+              <button key={idx*2 + 1}onClick={() => removeCourse(idx)} className="remove-button">
+                Eliminar
+              </button>
+            </div>
           ))}
         </div>
       )}

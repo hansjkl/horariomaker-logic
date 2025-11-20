@@ -80,19 +80,18 @@ function get_equiv_class(code, is_ofg_cat, restrictions, classes, ofgs){
     let modules_array = get_modules_array(section.modules, restrictions);
     if(!check_restrictions(section, modules_array, restrictions)) continue;
     // Para categorías OFG, usar el course_code de la sección; para cursos normales, usar el code
-    let section_code = is_ofg_cat ? section.course_code : code;
     let found = false;
     for(let j = 0; j < equiv_sections.length; j++){
       let equiv = equiv_sections[j];
       // Agrupar por módulos iguales Y mismo código de curso
-      if(modules_equal(modules_array, equiv.modules_array) && equiv.code === section_code){
+      if(modules_equal(modules_array, equiv.modules_array)){
         equiv_sections[j].sections.push(section);
         found = true;
         break;
       }
     }
     if(!found){
-      equiv_sections.push({"modules_array": modules_array, "code": section_code, "sections": [section]})
+      equiv_sections.push({"modules_array": modules_array, "code": code, "sections": [section]})
     }
   }
   return equiv_sections

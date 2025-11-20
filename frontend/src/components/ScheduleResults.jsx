@@ -1,9 +1,10 @@
 import { ofg_categories } from '../scheduleLogic';
+import { useState, useEffect } from 'react';
 
 const DAYS = ['L', 'M', 'W', 'J', 'V', 'S'];
 const DAYS_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const TIME_SLOTS_START = ['08:20', '09:40', '11:00', '12:20', '13:30', '14:50', '16:10', '17:30', '18:50', '20:10'];
-const MODULES_PER_DAY = 9;
+const MODULES_PER_DAY = 10; // Uno extra por almuerzo
 const LUNCH_MODULE = 4; // Módulo 5 (índice 4) es donde va el almuerzo
 
 // Función para agregar 1:10 (70 minutos) a una hora
@@ -17,16 +18,13 @@ const addTime = (timeStr) => {
 };
 
 function ScheduleResults({ schedule, onClose }) {
-  if (!schedule || schedule.length === 0) {
-    return (
-      <div className="schedule-results">
-        <div className="no-results">
-          <p>No se encontró un horario válido con las restricciones dadas.</p>
-          <p>Intenta ajustar tus restricciones o códigos de ramos.</p>
-        </div>
-      </div>
-    );
+  let startIndexes = new Array(schedule.length);
+  for(let i = 0; i < schedule.length; i++){
+    startIndexes[i] = 0;
   }
+  const [sectionIndexes, setSectionIndexes] = useState( () => {
+    return new Array(schedule.length).fill(0);
+  });
 
   // Ordenar schedule por código de curso y luego por número de sección
   const sortedSchedule = schedule.map(equiv => ({
@@ -39,56 +37,100 @@ function ScheduleResults({ schedule, onClose }) {
     return a.sections[0].section - b.sections[0].section;
   });
 
+  useEffect(() => {
+    setSectionIndexes(new Array(schedule.length).fill(0));
+  }, [schedule])
+
+  if (!schedule || schedule.length === 0) {
+    return (
+      <div className="schedule-results">
+        <div className="no-results">
+          <p>No se encontró un horario válido con las restricciones dadas.</p>
+          <p>Intenta ajustar tus restricciones o códigos de ramos.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if(schedule.length !== sectionIndexes.length){
+    return (
+      <div className="schedule-results">
+        <div className="no-results">
+          <p>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  for(let i = 0; i < schedule.length; i++){
+    if(sortedSchedule[i].sections.length <= sectionIndexes[i]){
+      return (
+        <div className="schedule-results">
+          <div className="no-results">
+            <p>Cargando...</p>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  const changeCourseIndex = (index, val) => {
+    let newIndexes = [...sectionIndexes];
+    newIndexes[index] += val;
+    if(newIndexes[index] > sortedSchedule[index].sections.length - 1) newIndexes[index] = 0;
+    if(newIndexes[index] < 0) newIndexes[index] = sortedSchedule[index].sections.length - 1;
+    setSectionIndexes(newIndexes);
+  }
+
   // Crear matriz de horario con información de bloques que ocupan múltiples módulos
   const scheduleMatrix = Array(6).fill(null).map(() => Array(9).fill(null).map(() => []));
   const blockMap = new Map(); // Para rastrear bloques que ocupan múltiples celdas
 
-  sortedSchedule.forEach(equiv => {
-    equiv.sections.forEach(section => {
-      // Agrupar módulos consecutivos del mismo tipo
-      const moduleGroups = [];
-      let currentGroup = null;
-      
-      section.modules
-        .sort((a, b) => {
-          if (a.day !== b.day) return a.day - b.day;
-          return a.module - b.module;
-        })
-        .forEach(module => {
-          if (!currentGroup || 
-              currentGroup.day !== module.day || 
-              currentGroup.type !== module.type ||
-              currentGroup.endModule !== module.module - 1) {
-            if (currentGroup) moduleGroups.push(currentGroup);
-            currentGroup = {
-              day: module.day,
-              startModule: module.module - 1,
-              endModule: module.module - 1,
-              type: module.type,
-              code: equiv.code,
-              section: section
-            };
-          } else {
-            currentGroup.endModule = module.module - 1;
-          }
-        });
-      if (currentGroup) moduleGroups.push(currentGroup);
-
-      // Colocar bloques en la matriz
-      moduleGroups.forEach(group => {
-        const key = `${group.day}-${group.startModule}-${group.endModule}`;
-        blockMap.set(key, group);
-        for (let m = group.startModule; m <= group.endModule; m++) {
-          scheduleMatrix[group.day][m].push({
-            code: group.code,
-            section: group.section,
-            type: group.type,
-            blockKey: key,
-            isStart: m === group.startModule,
-            span: group.endModule - group.startModule + 1
-          });
+  sortedSchedule.forEach((equiv, i) => {
+    let section = equiv.sections[sectionIndexes[i]];
+    // Agrupar módulos consecutivos del mismo tipo
+    const moduleGroups = [];
+    let currentGroup = null;
+    
+    section.modules
+      .sort((a, b) => {
+        if (a.day !== b.day) return a.day - b.day;
+        return a.module - b.module;
+      })
+      .forEach(module => {
+        if (!currentGroup || 
+            currentGroup.day !== module.day || 
+            currentGroup.type !== module.type ||
+            currentGroup.endModule !== module.module - 1) {
+          if (currentGroup) moduleGroups.push(currentGroup);
+          currentGroup = {
+            day: module.day,
+            startModule: module.module - 1,
+            endModule: module.module - 1,
+            type: module.type,
+            code: (ofg_categories.includes(equiv.code) ? section.course_code : equiv.code),
+            section: section
+          };
+        } else {
+          currentGroup.endModule = module.module - 1;
         }
       });
+    if (currentGroup) moduleGroups.push(currentGroup);
+
+    // Colocar bloques en la matriz
+    moduleGroups.forEach(group => {
+      const key = `${group.day}-${group.startModule}-${group.endModule}`;
+      blockMap.set(key, group);
+      for (let m = group.startModule; m <= group.endModule; m++) {
+        scheduleMatrix[group.day][m].push({
+          code: group.code,
+          section: group.section,
+          type: group.type,
+          blockKey: key,
+          isStart: m === group.startModule,
+          span: group.endModule - group.startModule + 1
+        });
+      }
     });
   });
 
@@ -117,19 +159,30 @@ function ScheduleResults({ schedule, onClose }) {
       </div>
 
       <div className="schedule-courses-list">
-        {sortedSchedule.flatMap((equiv, equivIdx) => 
-          equiv.sections.map((section, sectionIdx) => {
-            const displayText = `${equiv.code}-${section.section}: ${section.name}`;
-            return (
-              <input
-                key={`${equivIdx}-${sectionIdx}`}
-                type="text"
-                value={displayText}
-                readOnly
-                className="schedule-course-input"
-              />
+        {sortedSchedule.flatMap((equiv, equivIdx) => {
+            let section = equiv.sections[sectionIndexes[equivIdx]];
+            const displayText = (ofg_categories.includes(equiv.code) ? 
+              `${equiv.code}: ${section.course_code}-${section.section}: ${section.name} (${section.section_id})`
+              :
+              `${equiv.code}-${section.section}: ${section.name} (${section.section_id})`
             );
-          })
+            return (
+              <div className="schedule-course-row">
+                <input
+                  key={`${equivIdx}`}
+                  type="text"
+                  value={displayText}
+                  readOnly
+                  className="schedule-course-input"
+                />
+                <div className="schedule-course-selector">
+                  <button onClick={()=> changeCourseIndex(equivIdx, -1)} className="schedule-course-selector-button"> &lt; </button>
+                  Opción {sectionIndexes[equivIdx] + 1}/{equiv.sections.length}
+                  <button onClick={()=> changeCourseIndex(equivIdx, 1)} className="schedule-course-selector-button"> &gt; </button>
+                </div>
+              </div>
+            );
+          }
         )}
       </div>
 
@@ -165,6 +218,9 @@ function ScheduleResults({ schedule, onClose }) {
                       </td>
                     </tr>
                   );
+                }
+                if(moduleIdx > LUNCH_MODULE) {
+                  moduleIdx -= 1;
                 }
                 const startTime = TIME_SLOTS_START[moduleIdx];
                 const endTime = addTime(startTime);
