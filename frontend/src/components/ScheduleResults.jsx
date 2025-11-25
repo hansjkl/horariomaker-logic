@@ -203,7 +203,7 @@ function ScheduleResults({ schedule, onClose }) {
                     <tr key={moduleIdx}>
                       <td style={{ textAlign: 'center', border: '1px solid #CCD1E5' }}>
                         <div>13:30</div>
-                        <div>{addTime('13:30')}</div>
+                        <div>14:50</div>
                       </td>
                       <td 
                         colSpan="6" 
@@ -222,7 +222,7 @@ function ScheduleResults({ schedule, onClose }) {
                 if(moduleIdx > LUNCH_MODULE) {
                   moduleIdx -= 1;
                 }
-                const startTime = TIME_SLOTS_START[moduleIdx];
+                const startTime = TIME_SLOTS_START[moduleIdx + (moduleIdx >= LUNCH_MODULE ? 1: 0)];
                 const endTime = addTime(startTime);
                 return (
                   <tr key={moduleIdx}>
